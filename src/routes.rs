@@ -1,7 +1,7 @@
 use rocket::{request::FromParam, serde::{Deserialize, Serialize}};
 use rocket::serde::json::{Json, Value, json};
 
-use crate::sorting::{selection_sort, bubble_sort, insertion_sort, merge_sort, quick_sort, heap_sort, counting_sort};
+use crate::sorting::{selection_sort, bubble_sort, insertion_sort, merge_sort, quick_sort, heap_sort};
 
 #[derive(Serialize, Deserialize)]
 #[serde(crate = "rocket::serde")]
@@ -12,7 +12,6 @@ enum AlgorithmType {
     Merge,
     Quick,
     Heap,
-    Counting,
 }
 
 impl<'r> FromParam<'r> for AlgorithmType {
@@ -26,7 +25,6 @@ impl<'r> FromParam<'r> for AlgorithmType {
             "merge" => Ok(AlgorithmType::Merge),
             "quick" => Ok(AlgorithmType::Quick),
             "heap" => Ok(AlgorithmType::Heap),
-            "counting" => Ok(AlgorithmType::Counting),
             _ => Err("Invalid algorithm type."),
         }
     }
@@ -35,7 +33,15 @@ impl<'r> FromParam<'r> for AlgorithmType {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(crate = "rocket::serde")]
 struct SortRequest {
-    numbers: Vec<f64>,
+    numbers: Vec<i64>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(crate = "rocket::serde")]
+pub struct SortResult {
+    pub result: Vec<i64>,
+    pub array_accesses: i64,
+    pub duration: std::time::Duration,
 }
 
 #[post("/<algorithm_type>", format = "json", data = "<sort_request>")]
@@ -50,12 +56,13 @@ fn get(sort_request: Json<SortRequest>, algorithm_type: Result<AlgorithmType, &s
             AlgorithmType::Merge => merge_sort(sort_request.numbers.clone()),
             AlgorithmType::Quick => quick_sort(sort_request.numbers.clone()),
             AlgorithmType::Heap => heap_sort(sort_request.numbers.clone()),
-            AlgorithmType::Counting => counting_sort(sort_request.numbers.clone()),
         };
         Json(json!({
             "status": "success",
-            "result": result,
-            "results_length": sort_request_length
+            "result": result.result,
+            "array_accesses": result.array_accesses,
+            "duration": result.duration,
+            "results_length": sort_request_length,
         }))
     },
     Err(err) => {

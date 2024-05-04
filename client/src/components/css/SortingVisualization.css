@@ -1,0 +1,19 @@
+.background {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.background-color {
+    background-color: rgb(31, 32, 37);
+}
+
+.option-background {
+    color: rgb(31, 32, 37);
+}
+
+.content {
+    color: white;
+    flex-grow: 1;
+}

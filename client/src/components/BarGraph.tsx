@@ -25,6 +25,7 @@ const BarGraph: React.FC<BarGraphProps> = ({ numbers, width, height }) => {
         series={seriesData}
         width={width}
         height={height}
+        tooltip={{ trigger: 'item' }}
       />
     </div>
   );

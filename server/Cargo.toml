@@ -7,4 +7,6 @@ edition = "2021"
 
 [dependencies]
 rocket = { git = "https://github.com/rwf2/Rocket", rev = "e6aaea0" , features = ["json"]}
+strum = "0.26.2"
+strum_macros = "0.26.2"
 

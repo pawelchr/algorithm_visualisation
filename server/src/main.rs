@@ -3,8 +3,9 @@
 
 mod routes;
 mod sorting;
+mod cors;
 
 #[launch]
 fn rocket() -> rocket::Rocket<rocket::Build> {
-    rocket::build().attach(routes::stage())
+    rocket::build().attach(cors::CORS).attach(routes::stage())
 }

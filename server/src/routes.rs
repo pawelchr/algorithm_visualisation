@@ -1,9 +1,11 @@
 use rocket::{request::FromParam, serde::{Deserialize, Serialize}};
 use rocket::serde::json::{Json, Value, json};
+use strum::IntoEnumIterator;
+use strum_macros::EnumIter;
 
 use crate::sorting::{selection_sort, bubble_sort, insertion_sort, merge_sort, quick_sort, heap_sort};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, EnumIter, Debug)]
 #[serde(crate = "rocket::serde")]
 enum AlgorithmType {
     Selection,
@@ -45,7 +47,7 @@ pub struct SortResult {
 }
 
 #[post("/<algorithm_type>", format = "json", data = "<sort_request>")]
-fn get(sort_request: Json<SortRequest>, algorithm_type: Result<AlgorithmType, &str>) -> Json<Value> {
+fn sort_numbers(sort_request: Json<SortRequest>, algorithm_type: Result<AlgorithmType, &str>) -> Json<Value> {
     match algorithm_type {
     Ok(algorithm) => {
         let sort_request_length = sort_request.numbers.len();
@@ -74,6 +76,12 @@ fn get(sort_request: Json<SortRequest>, algorithm_type: Result<AlgorithmType, &s
     }
 }
 
+#[get("/algorithms")]
+fn get_sorting_algorithms() -> Json<Vec<String>> {
+    let algorithms: Vec<String> = AlgorithmType::iter().map(|alg| format!("{:?}", alg)).collect();
+    Json(algorithms)
+}
+
 #[catch(404)]
 fn not_found() -> Value {
     json!({
@@ -84,6 +92,6 @@ fn not_found() -> Value {
 
 pub fn stage() -> rocket::fairing::AdHoc {
     rocket::fairing::AdHoc::on_ignite("JSON", |rocket| async {
-        rocket.mount("/sort", routes![get]).register("/sort", catchers![not_found])
+        rocket.mount("/sort", routes![sort_numbers, get_sorting_algorithms]).register("/sort", catchers![not_found])
     })
 }

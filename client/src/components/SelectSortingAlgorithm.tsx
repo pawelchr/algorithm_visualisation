@@ -1,10 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import Select, { components, ControlProps } from 'react-select';
+import './css/SortingVisualization.css';
 
 type SortingOption = {
   value: string;
   label: string;
 };
+
+interface SelectSortingAlgorithmProps {
+  handleAlgorithmSelection: (algorithm: string) => void;
+}
 
 const ControlComponent = (props: ControlProps<SortingOption, false>) => (
   <div>
@@ -13,7 +18,7 @@ const ControlComponent = (props: ControlProps<SortingOption, false>) => (
   </div>
 );
 
-export default () => {
+export default ({ handleAlgorithmSelection }: SelectSortingAlgorithmProps) => {
   const [options, setOptions] = useState<SortingOption[]>([]);
 
   useEffect(() => {
@@ -35,7 +40,9 @@ export default () => {
       isSearchable
       name="algo_type"
       options={options}
-      className='option-color'
+      className='option-background'
+      menuPlacement='auto'
+      onChange={(option) => handleAlgorithmSelection(option?.value || '')}
     />
   );
 };

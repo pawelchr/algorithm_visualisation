@@ -8,8 +8,8 @@ interface BarGraphProps {
   height: number;
 }
 
-
 const BarGraph: React.FC<BarGraphProps> = ({ numbers, width, height }) => {
+  numbers = Array.isArray(numbers) ? numbers : [];
   const xAxisData = numbers.map((_, index) => [``]);
   const seriesData = [{ data: numbers }];
   const [key, setKey] = useState(0);

@@ -7,7 +7,7 @@ import SortingMenu from './SortingMenu';
 const apiService = new ApiService('http://localhost:8000');
 
 const SortingVisualization: React.FC = () => {
-    const [numbers, setNumbers] = useState<number[]>([]); 
+    const [numbers, setNumbers] = useState<number[]>([]);
     const [width, setWidth] = useState(window.innerWidth * 0.8);
     const [height, setHeight] = useState(window.innerHeight * 0.8);
     const [selectedAlgorithm, setSelectedAlgorithm] = useState<string>('');
@@ -27,7 +27,7 @@ const SortingVisualization: React.FC = () => {
     const handleAlgorithmSelection = (algorithm: string) => {
       setSelectedAlgorithm(algorithm);
       apiService.performSortingAlgorithm(algorithm, numbers)
-          .then(sortedNumbers => setNumbers(sortedNumbers))
+          .then(sortedNumbers => setNumbers(sortedNumbers)).then(() => console.log('Sorted numbers:', numbers))
           .catch(error => console.error(error));
   };
 
@@ -38,7 +38,7 @@ const SortingVisualization: React.FC = () => {
             </div>
             <div>
                 <SortingMenu setNumbers={setNumbers} handleAlgorithmSelection={handleAlgorithmSelection}/>
-
+                {selectedAlgorithm && <p className='algorithm-selected'>Selected algorithm: {selectedAlgorithm}</p>}
             </div>
         </div>
     );

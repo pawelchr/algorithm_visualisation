@@ -26,7 +26,6 @@ const ArrayToSort: React.FC<ArrayToSortProps> = ({ setNumbers }) => {
             setError('Invalid input. Please enter valid numbers.');
         } else {
             setNumbers(numArray);
-            setInput('');
             setError('');
         }
     };

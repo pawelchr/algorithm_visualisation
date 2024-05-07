@@ -11,8 +11,8 @@ pub fn selection_sort(mut vec_of_numbers: Vec<i64>) -> SortResult {
         for j in i+1..vec_of_numbers.len() {
             if vec_of_numbers[j] < vec_of_numbers[min_index] {
                 min_index = j;
-                array_accesses += 1;
             }
+            array_accesses += 1;
         }
         if min_index != i {
             vec_of_numbers.swap(i, min_index);

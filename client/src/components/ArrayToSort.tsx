@@ -1,13 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './css/SortingVisualization.css';
 
 interface ArrayToSortProps {
     setNumbers: React.Dispatch<React.SetStateAction<number[]>>;
+    setStep: React.Dispatch<React.SetStateAction<number>>;
+    selectedAlgorithm: string;
 }
 
-const ArrayToSort: React.FC<ArrayToSortProps> = ({ setNumbers }) => {
+const ArrayToSort: React.FC<ArrayToSortProps> = ({ setNumbers, setStep, selectedAlgorithm }) => {
     const [input, setInput] = useState('');
     const [error, setError] = useState('');
+
+    useEffect(() => {
+      setStep(1);
+  }, [selectedAlgorithm]);
 
     const handleInput = () => {
         let separator;
@@ -26,6 +32,7 @@ const ArrayToSort: React.FC<ArrayToSortProps> = ({ setNumbers }) => {
             setError('Invalid input. Please enter valid numbers.');
         } else {
             setNumbers(numArray);
+            setStep(1);
             setError('');
         }
     };

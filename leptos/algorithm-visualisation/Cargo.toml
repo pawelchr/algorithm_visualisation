@@ -1,0 +1,12 @@
+[package]
+name = "algorithm-visualisation"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+console_error_panic_hook = "0.1.7"
+console_log = "1.0.0"
+leptos = { version = "0.6.12", features = ["csr", "nightly"] }
+leptos_charts = { git = "https://github.com/Panaetius/leptos_charts.git"}
+log = "0.4.22"
+once_cell = "1.19.0"

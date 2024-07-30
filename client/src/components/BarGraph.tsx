@@ -27,6 +27,7 @@ const BarGraph: React.FC<BarGraphProps> = ({ sortedNumbersResponse, width, heigh
   numbers = Array.isArray(numbers)? numbers : [];
   
   useEffect(() => {
+    console.log('sortedNumbersResponse: ', sortedNumbersResponse)
     if (sortedNumbersResponse) {
       if (step > previousStep) {
         setStartIndex(endIndex);

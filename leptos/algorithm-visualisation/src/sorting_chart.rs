@@ -24,7 +24,7 @@ pub fn SortingChart(data: ReadSignal<Vec<f64>>) -> impl IntoView {
         attr:style="margin-top:5px"
         attr:preserveAspectRatio="none"
         attr:width="500"
-        attr:height="300"
+        attr:height="500"
     />
     }
 }

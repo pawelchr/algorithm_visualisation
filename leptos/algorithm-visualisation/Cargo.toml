@@ -10,3 +10,4 @@ leptos = { version = "0.6.12", features = ["csr", "nightly"] }
 leptos_charts = { git = "https://github.com/Panaetius/leptos_charts.git"}
 log = "0.4.22"
 once_cell = "1.19.0"
+strum_macros = "0.26.4"

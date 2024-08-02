@@ -1,5 +1,6 @@
-use console_log::init;
+use leptos::{Attribute, IntoAttribute, Oco};
 use leptos_charts::Color;
+use std::str::FromStr;
 use std::time::{Duration, Instant};
 
 #[derive(Debug, Clone, strum_macros::Display)]
@@ -8,27 +9,58 @@ pub enum SortType {
     Insert,
     Quick,
     Merge,
-    Invalid,
+}
+
+impl FromStr for SortType {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<SortType, Self::Err> {
+        match s {
+            "Bubble" => Ok(SortType::Bubble),
+            "Insert" => Ok(SortType::Insert),
+            "Quick" => Ok(SortType::Quick),
+            "Merge" => Ok(SortType::Merge),
+            _ => Err(()),
+        }
+    }
+}
+
+impl IntoAttribute for SortType {
+    fn into_attribute(self) -> Attribute {
+        // Convert SortType to its string representation
+        let value = self.to_string();
+
+        // Create and return an Attribute::String variant
+        Attribute::String(Oco::from(value))
+    }
+
+    fn into_attribute_boxed(self: Box<Self>) -> Attribute {
+        // Convert boxed SortType to its string representation
+        let value = self.to_string();
+
+        // Create and return an Attribute::String variant
+        Attribute::String(Oco::from(value))
+    }
 }
 
 pub struct SortingResult<'a> {
-    steps: Steps<'a>,
-    time: Duration,
+    pub steps: Steps<'a>,
+    pub time: Duration,
 }
 
 impl<'a> SortingResult<'a> {
-    fn new(steps: Steps<'a>, time: Duration) -> Self {
+    pub fn new(steps: Steps<'a>, time: Duration) -> Self {
         Self { steps, time }
     }
 }
 
-struct Steps<'a> {
-    steps: Vec<Vec<f64>>,
-    palette: Vec<Vec<Color<'a>>>,
+pub struct Steps<'a> {
+    pub steps: Vec<Vec<f64>>,
+    pub palette: Vec<Vec<Color<'a>>>,
 }
 
 impl<'a> Steps<'a> {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             steps: vec![],
             palette: vec![],

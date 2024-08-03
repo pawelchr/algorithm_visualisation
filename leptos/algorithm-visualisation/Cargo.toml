@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+chrono = "0.4.38"
 console_error_panic_hook = "0.1.7"
 console_log = "1.0.0"
 leptos = { version = "0.6.12", features = ["csr", "nightly"] }
@@ -11,3 +12,4 @@ leptos_charts = { git = "https://github.com/Panaetius/leptos_charts.git"}
 log = "0.4.22"
 once_cell = "1.19.0"
 strum_macros = "0.26.4"
+wasm-bindgen = "0.2.92"

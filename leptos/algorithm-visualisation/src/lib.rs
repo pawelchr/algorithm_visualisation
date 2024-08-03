@@ -7,7 +7,6 @@ use std::{str::FromStr, vec};
 use leptos::*;
 use sorting::{bubble_sort, SortType, SortingResult, Steps};
 use sorting_chart::SortingChart;
-use std::time::Duration;
 
 #[component]
 pub fn App() -> impl IntoView {
@@ -18,20 +17,25 @@ pub fn App() -> impl IntoView {
     let on_submit = move |ev: leptos::ev::SubmitEvent| {
         ev.prevent_default();
 
-        let value = input_element().expect("<input> should be mounted").value();
+        let value = input_element
+            .get()
+            .expect("<input> should be mounted")
+            .value();
         set_input_value(value);
-        let result: SortingResult = SortingResult::new(Steps::new(), Duration::default());
+        let mut biding = create_vec_from_string(input_value.get());
+        let mut result: SortingResult = SortingResult::new(Steps::new());
         match sorting_type() {
-            SortType::Bubble => result = bubble_sort(&mut create_vec_from_string(input_value())),
-            SortType::Quick => result = bubble_sort(&mut create_vec_from_string(input_value())),
-            SortType::Insert => result = bubble_sort(&mut create_vec_from_string(input_value())),
-            SortType::Merge => result = bubble_sort(&mut create_vec_from_string(input_value())),
+            SortType::Bubble => result = bubble_sort(&mut biding),
+            SortType::Quick => result = bubble_sort(&mut biding),
+            SortType::Insert => result = bubble_sort(&mut biding),
+            SortType::Merge => result = bubble_sort(&mut biding),
         };
         set_sorted_vec(result.steps.steps);
     };
 
     create_effect(move |_| {
-        log!("sorted_vec: {}", sorted_vec());
+        let vecs = sorted_vec();
+        log!("sorted_vec: {:?}", vecs);
     });
 
     view! {
@@ -51,7 +55,7 @@ pub fn App() -> impl IntoView {
             <input type="submit" value="Submit" />
         </form>        <SortingChart data=sorted_vec />
 
-        <p>"input value:"{move || input_value()} "\n" "vec_to_sort: "{move || sorted_vec()}</p>
+        <p>"input value:"{move || input_value.get()} "\n" "vec_to_sort: "{move || sorted_vec.get()}</p>
     }
 }
 

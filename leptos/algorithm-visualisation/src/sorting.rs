@@ -1,7 +1,6 @@
 use leptos::{Attribute, IntoAttribute, Oco};
 use leptos_charts::Color;
 use std::str::FromStr;
-use std::time::{Duration, Instant};
 
 #[derive(Debug, Clone, strum_macros::Display)]
 pub enum SortType {
@@ -45,12 +44,11 @@ impl IntoAttribute for SortType {
 
 pub struct SortingResult<'a> {
     pub steps: Steps<'a>,
-    pub time: Duration,
 }
 
 impl<'a> SortingResult<'a> {
-    pub fn new(steps: Steps<'a>, time: Duration) -> Self {
-        Self { steps, time }
+    pub fn new(steps: Steps<'a>) -> Self {
+        Self { steps }
     }
 }
 
@@ -75,8 +73,7 @@ impl<'a> Steps<'a> {
 
 pub fn bubble_sort<'a>(arr: &'a mut Vec<f64>) -> SortingResult {
     let mut swapped = true;
-    let start = Instant::now();
-    let base_color: Vec<Color<'a>> = vec![Color::RGB(108, 108, 108); arr.len() - 1];
+    let base_color: Vec<Color<'a>> = vec![Color::RGB(108, 108, 108); arr.len()];
     let mut steps: Steps<'a> = Steps::<'a>::new();
 
     while swapped {
@@ -93,7 +90,6 @@ pub fn bubble_sort<'a>(arr: &'a mut Vec<f64>) -> SortingResult {
             steps.push(arr.clone(), palette)
         }
     }
-    let duration = start.elapsed();
 
-    SortingResult::<'a>::new(steps, duration)
+    SortingResult::<'a>::new(steps)
 }

@@ -1,5 +1,4 @@
 use leptos::{Attribute, IntoAttribute, Oco};
-use leptos_charts::Color;
 use std::str::FromStr;
 
 #[derive(Debug, Clone, strum_macros::Display)]
@@ -8,6 +7,13 @@ pub enum SortType {
     Insert,
     Quick,
     Merge,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, strum_macros::Display)]
+pub enum BarColor {
+    Green,
+    Grey,
+    Orange,
 }
 
 impl FromStr for SortType {
@@ -42,22 +48,22 @@ impl IntoAttribute for SortType {
     }
 }
 
-pub struct SortingResult<'a> {
-    pub steps: Steps<'a>,
+pub struct SortingResult {
+    pub steps: Steps,
 }
 
-impl<'a> SortingResult<'a> {
-    pub fn new(steps: Steps<'a>) -> Self {
+impl SortingResult {
+    pub fn new(steps: Steps) -> Self {
         Self { steps }
     }
 }
 
-pub struct Steps<'a> {
+pub struct Steps {
     pub steps: Vec<Vec<f64>>,
-    pub palette: Vec<Vec<Color<'a>>>,
+    pub palette: Vec<Vec<BarColor>>,
 }
 
-impl<'a> Steps<'a> {
+impl Steps {
     pub fn new() -> Self {
         Self {
             steps: vec![],
@@ -65,31 +71,36 @@ impl<'a> Steps<'a> {
         }
     }
 
-    fn push(&mut self, step: Vec<f64>, palette: Vec<Color<'a>>) {
+    fn push(&mut self, step: Vec<f64>, palette: Vec<BarColor>) {
         self.steps.push(step);
         self.palette.push(palette);
     }
 }
 
-pub fn bubble_sort<'a>(arr: &'a mut Vec<f64>) -> SortingResult {
+pub fn bubble_sort(mut arr: Vec<f64>) -> SortingResult {
     let mut swapped = true;
-    let base_color: Vec<Color<'a>> = vec![Color::RGB(108, 108, 108); arr.len()];
-    let mut steps: Steps<'a> = Steps::<'a>::new();
+    let base_color = vec![BarColor::Grey; arr.len()];
+    let end_color = vec![BarColor::Orange; arr.len()];
+    let mut steps: Steps = Steps::new();
 
+    steps.push(arr.clone(), base_color.clone());
     while swapped {
         swapped = false;
-        steps.push(arr.clone(), base_color.clone());
         for i in 0..arr.len() - 1 {
             let mut palette = base_color.clone();
+            palette[i] = BarColor::Green;
+            palette[i + 1] = BarColor::Green;
+            steps.push(arr.clone(), palette.clone());
             if arr[i] > arr[i + 1] {
                 arr.swap(i, i + 1);
                 swapped = true;
+                palette[i] = BarColor::Green;
+                palette[i + 1] = BarColor::Green;
+                steps.push(arr.clone(), palette);
             }
-            palette[i] = Color::RGB(0, 255, 0);
-            palette[i + 1] = Color::RGB(0, 255, 0);
-            steps.push(arr.clone(), palette)
         }
     }
+    steps.push(arr.clone(), end_color.clone());
 
-    SortingResult::<'a>::new(steps)
+    SortingResult::new(steps)
 }

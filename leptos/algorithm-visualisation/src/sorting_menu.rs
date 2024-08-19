@@ -1,14 +1,13 @@
-pub mod navbar;
-pub mod sorting;
-pub mod sorting_chart;
 use std::{str::FromStr, vec};
 
 use leptos::*;
-use sorting::{bubble_sort, BarColor, SortType};
-use sorting_chart::SortingChart;
+use leptos_router::{Route, RouteProps, Router, RouterProps, Routes, RoutesProps};
+use crate::sorting::{bubble_sort, BarColor, SortType};
+use crate::sorting_chart::SortingChart;
+
 
 #[component]
-pub fn App() -> impl IntoView {
+pub fn SortingMenu() -> impl IntoView {
     let (sorting_type, set_sorting_type) = create_signal(SortType::Bubble);
     let (sorted_vec, set_sorted_vec) = create_signal(vec![vec![1.0]]);
     let (palletes, set_palletes) = create_signal(vec![vec![BarColor::Green]]);
@@ -34,23 +33,30 @@ pub fn App() -> impl IntoView {
     };
 
     view! {
-        <select
-            on:change=move |ev| {
-                set_sorting_type(SortType::from_str(&event_target_value(&ev)).unwrap());
-            }
-            prop:value=move || sorting_type.get().to_string()
-        >
-            <option value=SortType::Bubble>"Bubble Sort"</option>
-            <option value=SortType::Insert>"Insert Sort"</option>
-            <option value=SortType::Quick>"Quick Sort"</option>
-            <option value=SortType::Merge>"Merge Sort"</option>
-        </select>
-        <form on:submit=on_submit>
-            <input type="text" value=input_value node_ref=input_element />
-            <input type="submit" value="Submit" />
-        </form>        <SortingChart steps=sorted_vec palettes=palletes/>
+        <div>
+            <select
+                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                on:change=move |ev| {
+                    set_sorting_type(SortType::from_str(&event_target_value(&ev)).unwrap());
+                }
+                prop:value=move || sorting_type.get().to_string()
+            >
+                <option value=SortType::Bubble>"Bubble Sort"</option>
+                <option value=SortType::Insert>"Insert Sort"</option>
+                <option value=SortType::Quick>"Quick Sort"</option>
+                <option value=SortType::Merge>"Merge Sort"</option>
+            </select>
+            <form on:submit=on_submit>
+                <input type="text" value=input_value node_ref=input_element />
+                <input type="submit" value="Submit" />
+            </form>
+            <SortingChart steps=sorted_vec palettes=palletes />
 
-        <p>"input value:"{move || input_value.get()} "\n" "vec_to_sort: "{move || sorted_vec.get()}</p>
+            <p>
+                "input value:"{move || input_value.get()} "\n" "vec_to_sort: "
+                {move || sorted_vec.get()}
+            </p>
+        </div>
     }
 }
 

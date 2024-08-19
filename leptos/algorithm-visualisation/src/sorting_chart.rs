@@ -1,4 +1,4 @@
-use crate::BarColor;
+use crate::sorting::BarColor;
 use leptos::*;
 use leptos_charts::*;
 use std::f64;
@@ -49,18 +49,18 @@ pub fn SortingChart(
             attr:width="500"
             attr:height="500"
         />
+        <button on:click=move |_| {
+            set_current_step.update(|n| *n -= 1);
+        }>"Previous step"</button>
         <button
-            on:click=move |_| { set_current_step.update(|n| *n -= 1); }
-        >
-            "Previous step"
-        </button>
-        <button
-            prop:disabled=move || {if disable() {true} else {false}}
-            on:click=move |_| { if current_step() < steps().len() - 1 {
-    set_current_step.update(|n| *n += 1); } else {
-        set_disable(true)
-    }
-    }
+            prop:disabled=move || { if disable() { true } else { false } }
+            on:click=move |_| {
+                if current_step() < steps().len() - 1 {
+                    set_current_step.update(|n| *n += 1);
+                } else {
+                    set_disable(true)
+                }
+            }
         >
             "Next step"
         </button>

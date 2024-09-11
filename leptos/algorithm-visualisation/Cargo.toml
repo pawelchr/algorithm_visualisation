@@ -8,19 +8,9 @@ chrono = "0.4.38"
 console_error_panic_hook = "0.1.7"
 console_log = "1.0.0"
 leptos = { version = "0.6.12", features = ["csr", "nightly"] }
+leptos-chartistry = "0.1.7"
 leptos-struct-table = "0.12.0"
-leptos_charts = { git = "https://github.com/melo1901/leptos_charts.git" }
 leptos_router = { version = "0.6.14", features = ["csr"] }
 log = "0.4.22"
 once_cell = "1.19.0"
 strum_macros = "0.26.4"
-
-
-[[bin]]
-name = "algorithm_visualisation"
-path = "src/main.rs"
-
-[package.metadata.leptos]
-site-root = "static"
-output-name = "app"
-styles-output = "style.css"

@@ -1,53 +1,6 @@
 use leptos::{Attribute, IntoAttribute, IntoView, Oco};
 use std::str::FromStr;
 
-#[derive(Clone, Debug, PartialEq, Copy)]
-pub struct MyData {
-    pub x: f64,
-    pub y1: f64,
-    pub colour: BarColor,
-}
-
-impl MyData {
-    const fn new(x: f64, y1: f64, colour: BarColor) -> Self {
-        Self { x, y1, colour }
-    }
-}
-
-
-#[derive(Clone, PartialEq, Debug)]
-pub struct SortRes {
-    pub steps: StepsTest,
-}
-
-impl SortRes {
-    pub fn new(steps: StepsTest) -> Self {
-        SortRes { steps }
-    }
-}
-
-#[derive(Clone, PartialEq, Debug)]
-pub struct StepsTest{ 
-    pub data: Vec<Vec<MyData>>
-}
-
-impl StepsTest {
-    pub fn new() -> Self {
-        StepsTest { data: Vec::new() }
-    }
-
-    pub fn push(&mut self, step: Vec<MyData>) {
-        self.data.push(step);
-    }
-
-    pub fn return_index(self, index: usize) -> Vec<MyData> {
-        let temp = self.data.get(index).clone();
-        match temp {
-            Some(temp) => temp.clone(),
-            None => vec![MyData::new(1.0, 1.0, BarColor::Green)],
-        }
-    }
-}
 
 #[derive(Debug, Clone, strum_macros::Display)]
 pub enum SortType {
@@ -147,44 +100,44 @@ pub fn bubble_sort(mut arr: Vec<f64>) -> SortingResult {
     SortingResult::new(steps)
 }
 
-pub fn bubble_sort_test(mut arr: Vec<f64>) -> SortRes {
-    let mut swapped = true;
-    let base_color = vec![BarColor::Grey; arr.len()];
-    let end_color = vec![BarColor::Orange; arr.len()];
-    let mut steps_test: StepsTest = StepsTest::new();
+// pub fn bubble_sort_test(mut arr: Vec<f64>) -> SortRes {
+//     let mut swapped = true;
+//     let base_color = vec![Colour::from_rgb(192, 192, 192); arr.len()];
+//     let end_color = vec![Colour::from_rgb(255, 127, 80); arr.len()];
+//     let mut steps_test: StepsTest = StepsTest::new();
 
-    steps_test.push(create_step(&arr, &base_color));
+//     steps_test.push(create_step(&arr, &base_color));
 
-    while swapped {
-        swapped = false;
-        for i in 0..arr.len() - 1 {
-            let mut palette = base_color.clone();
-            palette[i] = BarColor::Green;
-            palette[i + 1] = BarColor::Green;
-            steps_test.push(create_step(&arr, &palette));
+//     while swapped {
+//         swapped = false;
+//         for i in 0..arr.len() - 1 {
+//             let mut palette = base_color.clone();
+//             palette[i] = Colour::from_rgb(50, 205, 50);
+//             palette[i + 1] = Colour::from_rgb(50, 205, 50);
+//             steps_test.push(create_step(&arr, &palette));
 
-            if arr[i] > arr[i + 1] {
-                arr.swap(i, i + 1);
-                swapped = true;
-                palette[i] = BarColor::Green;
-                palette[i + 1] = BarColor::Green;
-                steps_test.push(create_step(&arr, &palette));
-            }
-        }
-    }
-    steps_test.push(create_step(&arr, &end_color));
+//             if arr[i] > arr[i + 1] {
+//                 arr.swap(i, i + 1);
+//                 swapped = true;
+//                 palette[i] = Colour::from_rgb(50, 205, 50);
+//                 palette[i + 1] = Colour::from_rgb(50, 205, 50);
+//                 steps_test.push(create_step(&arr, &palette));
+//             }
+//         }
+//     }
+//     steps_test.push(create_step(&arr, &end_color));
 
-    SortRes::new(steps_test)
-}
+//     SortRes::new(steps_test)
+// }
 
-fn create_step(arr: &Vec<f64>, colors: &Vec<BarColor>) -> Vec<MyData> {
-    arr.iter()
-        .enumerate()
-        .map(|(index, &y1)| MyData {
-            x: (index + 1) as f64,
-            y1,
-            colour: colors[index].clone(),
-        })
-        .collect()
-}
+// fn create_step(arr: &Vec<f64>, colors: &Vec<BarColor>) -> Vec<Steps> {
+//     arr.iter()
+//         .enumerate()
+//         .map(|(index, &y1)| Steps {
+//             x: (index + 1) as f64,
+//             y1,
+//             colour: colors[index].clone(),
+//         })
+//         .collect()
+// }
 

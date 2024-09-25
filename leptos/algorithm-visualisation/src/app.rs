@@ -1,7 +1,7 @@
 use leptos::*;
 use leptos_router::{Route, Router, Routes};
 use crate::sorting_menu::SortingMenu;
-use crate::path_finding::PathFinding;
+use crate::path_finding_menu::PathFinding;
 
 #[component]
 pub fn App() -> impl IntoView {

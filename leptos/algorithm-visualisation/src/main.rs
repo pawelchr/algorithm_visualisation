@@ -2,6 +2,7 @@ mod navbar;
 mod sorting;
 mod sorting_chart;
 mod sorting_menu;
+mod path_finding_menu;
 mod path_finding;
 mod app;
 

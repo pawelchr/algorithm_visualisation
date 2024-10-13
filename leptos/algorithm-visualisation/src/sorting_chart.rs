@@ -1,8 +1,4 @@
-
-use std::isize;
-
 use crate::sorting::BarColor;
-use web_sys::console;
 use leptos::*;
 use leptos_charts::{BarChart, Color, BarChartOptions, Palette};
 
@@ -12,7 +8,6 @@ pub fn SortingChart(
     steps: ReadSignal<Vec<Vec<f64>>>,
     palettes: ReadSignal<Vec<Vec<BarColor>>>,
 ) -> impl IntoView {
-    let (disable, set_disable) = create_signal(false);
     let current_step = create_rw_signal(0);
     let grey_color = Color::RGB(108, 108, 108);
     let green_color = Color::RGB(0, 255, 0);

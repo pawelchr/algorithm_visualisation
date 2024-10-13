@@ -12,7 +12,6 @@ pub fn SortingMenu() -> impl IntoView {
     let (palletes, set_palletes) = create_signal(vec![vec![BarColor::Green]]);
     let (input_value, set_input_value) = create_signal("".to_string());
     //let (data, set_data) = create_signal(SortRes::new(StepsTest::new()));
-    let debug = create_signal(true);
     let input_element: NodeRef<html::Input> = create_node_ref();
     let on_submit = move |ev: leptos::ev::SubmitEvent| {
         ev.prevent_default();

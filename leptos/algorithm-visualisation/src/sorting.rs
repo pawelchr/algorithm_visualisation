@@ -1,4 +1,4 @@
-use leptos::{Attribute, IntoAttribute, IntoView, Oco};
+use leptos::{Attribute, IntoAttribute, Oco};
 use std::str::FromStr;
 
 

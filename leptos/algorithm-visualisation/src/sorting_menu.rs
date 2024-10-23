@@ -1,7 +1,7 @@
 use std::{str::FromStr, vec};
 
 use leptos::*;
-use crate::sorting::{bubble_sort, BarColor, SortType};
+use crate::sorting::{bubble_sort, insertion_sort, quick_sort, BarColor, SortType};
 use crate::sorting_chart::SortingChart;
 
 
@@ -24,8 +24,8 @@ pub fn SortingMenu() -> impl IntoView {
         let read_vector = create_vec_from_string(input_value.get());
         let result = match sorting_type() {
             SortType::Bubble => bubble_sort(read_vector),
-            SortType::Quick => bubble_sort(read_vector),
-            SortType::Insert => bubble_sort(read_vector),
+            SortType::Quick => quick_sort(read_vector),
+            SortType::Insert => insertion_sort(read_vector),
             SortType::Merge => bubble_sort(read_vector),
         };
         set_palletes(result.steps.palette);

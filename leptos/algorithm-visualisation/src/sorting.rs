@@ -100,6 +100,94 @@ pub fn bubble_sort(mut arr: Vec<f64>) -> SortingResult {
     SortingResult::new(steps)
 }
 
+pub fn insertion_sort(mut arr: Vec<f64>) -> SortingResult {
+    let mut steps: Steps = Steps::new();
+    let base_color = vec![BarColor::Grey; arr.len()];
+    let end_color = vec![BarColor::Orange; arr.len()];
+    steps.push(arr.clone(), base_color.clone());
+
+    for i in 1..arr.len() {
+        let mut j = i;
+        while j > 0 && arr[j - 1] > arr[j] {
+            let mut palette = base_color.clone();
+            palette[j - 1] = BarColor::Green;
+            palette[j] = BarColor::Green;
+            steps.push(arr.clone(), palette.clone());
+
+            arr.swap(j - 1, j);
+            steps.push(arr.clone(), palette);
+            j -= 1;
+        }
+    }
+
+    steps.push(arr.clone(), end_color);
+    SortingResult::new(steps)
+}
+
+pub fn quick_sort(arr: Vec<f64>) -> SortingResult {
+    let mut steps: Steps = Steps::new();
+    let base_color = vec![BarColor::Grey; arr.len()];
+    steps.push(arr.clone(), base_color.clone());
+
+    fn quick_sort_recursive(arr: &mut Vec<f64>, low: usize, high: usize, steps: &mut Steps, base_color: &Vec<BarColor>) {
+        if low < high {
+            let p = partition(arr, low, high, steps, base_color);
+            if p > 0 {
+                quick_sort_recursive(arr, low, p - 1, steps, base_color);
+            }
+            quick_sort_recursive(arr, p + 1, high, steps, base_color);
+        }
+    }
+
+    fn partition(arr: &mut Vec<f64>, low: usize, high: usize, steps: &mut Steps, base_color: &Vec<BarColor>) -> usize {
+        let pivot = arr[high];
+        let mut i = low;
+
+        let mut palette = base_color.clone();
+        palette[high] = BarColor::Green;
+        steps.push(arr.clone(), palette.clone());
+
+        for j in low..high {
+            palette = base_color.clone();
+            palette[high] = BarColor::Green;
+            palette[j] = BarColor::Green; 
+            if i > low {
+                palette[i - 1] = BarColor::Green;
+            }
+            steps.push(arr.clone(), palette.clone());
+
+            if arr[j] <= pivot {
+                arr.swap(i, j);
+                palette[i] = BarColor::Green;
+                steps.push(arr.clone(), palette.clone());
+                i += 1;
+            }
+        }
+
+        arr.swap(i, high);
+        palette = base_color.clone();
+        palette[i] = BarColor::Orange; 
+        for k in low..i {
+            palette[k] = BarColor::Orange;
+        }
+        steps.push(arr.clone(), palette);
+
+        i
+    }
+
+    let mut arr_clone = arr.clone();
+    if !arr_clone.is_empty() {
+        let arr_length = arr_clone.len() - 1;
+        quick_sort_recursive(&mut arr_clone, 0, arr_length, &mut steps, &base_color);
+    }
+    
+    let final_palette = vec![BarColor::Orange; arr_clone.len()];
+    steps.push(arr_clone.clone(), final_palette);
+
+    SortingResult::new(steps)
+}
+
+
 // pub fn bubble_sort_test(mut arr: Vec<f64>) -> SortRes {
 //     let mut swapped = true;
 //     let base_color = vec![Colour::from_rgb(192, 192, 192); arr.len()];

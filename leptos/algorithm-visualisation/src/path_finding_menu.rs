@@ -1,8 +1,9 @@
 use leptos::*;
-use std::collections::{VecDeque, BinaryHeap};
+use std::collections::{VecDeque, BinaryHeap, HashSet};
 use std::cmp::Ordering;
-use futures::StreamExt;
 use gloo_timers::future::TimeoutFuture;
+use rand::prelude::SliceRandom;
+use rand::Rng;
 
 // Constants
 const ROWS: usize = 20;
@@ -36,6 +37,13 @@ enum Algorithm {
     DFS,
 }
 
+#[derive(Clone, PartialEq)]
+enum AnimationSpeed {
+    Slow,
+    Medium,
+    Fast,
+}
+
 #[derive(Copy, Clone, Eq, PartialEq)]
 struct State {
     cost: usize,
@@ -64,8 +72,10 @@ pub fn PathfindingVisualizer() -> impl IntoView {
     let (selected_algorithm, set_selected_algorithm) = create_signal(Algorithm::Dijkstra);
     let (current_mode, set_current_mode) = create_signal(NodeType::Empty);
     let (is_animating, set_is_animating) = create_signal(false);
+    let (visited_nodes, set_visited_nodes) = create_signal(Vec::new());
+    let (path, set_path) = create_signal(Vec::new());
+    let (animation_speed, set_animation_speed) = create_signal(AnimationSpeed::Medium);
 
-    // Initialize the grid
     create_effect(move |_| {
         let mut new_grid = vec![vec![Node { row: 0, col: 0, node_type: NodeType::Empty }; COLS]; ROWS];
         for i in 0..ROWS {
@@ -80,7 +90,6 @@ pub fn PathfindingVisualizer() -> impl IntoView {
         set_grid(new_grid);
     });
 
-    // Handle mouse events
     let handle_mouse_down = move |row: usize, col: usize| {
         set_is_mouse_pressed(true);
         update_node(row, col, &grid, &set_grid, &start_node, &end_node, &set_start_node, &set_end_node, &current_mode);
@@ -96,7 +105,6 @@ pub fn PathfindingVisualizer() -> impl IntoView {
         set_is_mouse_pressed(false);
     };
 
-    // Render grid
     let render_grid = move || {
         grid.get().iter().enumerate().map(|(i, row)| {
             view! {
@@ -138,21 +146,44 @@ pub fn PathfindingVisualizer() -> impl IntoView {
             set_is_animating(true);
             if let (Some(start), Some(end)) = (start_node.get(), end_node.get()) {
                 let algorithm = selected_algorithm.get();
+                
+                set_grid.update(|g| clear_path_and_visited(g));
+                
                 let current_grid = grid.get();
                 
-                let (visited_nodes, path) = match algorithm {
+                let (visited, path_result) = match algorithm {
                     Algorithm::Dijkstra => dijkstra(&current_grid, start, end),
                     Algorithm::AStar => astar(&current_grid, start, end),
                     Algorithm::BFS => bfs(&current_grid, start, end),
                     Algorithm::DFS => dfs(&current_grid, start, end),
                 };
-
+    
+                set_visited_nodes(visited);
+                set_path(path_result);
+    
                 spawn_local(async move {
-                    animate_path_finding(grid, set_grid, visited_nodes, path, set_is_animating).await;
+                    animate_path_finding(set_grid, visited_nodes, path, set_is_animating, animation_speed).await;
                 });
             } else {
                 set_is_animating(false);
             }
+        }
+    };
+
+    let generate_labyrinth = move |_| {
+        if let (Some(start), Some(end)) = (start_node.get(), end_node.get()) {
+            set_grid.update(|g| {
+                for row in g.iter_mut() {
+                    for node in row.iter_mut() {
+                        node.node_type = NodeType::Wall;
+                    }
+                }
+
+                generate_maze(g, start, end);
+
+                g[start.0][start.1].node_type = NodeType::Start;
+                g[end.0][end.1].node_type = NodeType::End;
+            });
         }
     };
 
@@ -183,14 +214,22 @@ pub fn PathfindingVisualizer() -> impl IntoView {
                 </select>
                 <button on:click=visualize_pathfinding disabled=is_animating>"Visualize Pathfinding"</button>
             </div>
+
+            <div class="grid" style="display: inline-block; border: 1px solid #000;">
+                {render_grid}
+            </div>
             <div class="node-selection" style="margin-bottom: 10px;">
                 <button on:click=move |_| set_current_mode(NodeType::Start)>"Select Start"</button>
                 <button on:click=move |_| set_current_mode(NodeType::End)>"Select End"</button>
                 <button on:click=move |_| set_current_mode(NodeType::Wall)>"Draw Walls"</button>
+                <button 
+                    on:click=generate_labyrinth
+                    disabled={move || start_node.get().is_none() || end_node.get().is_none()}
+                >
+                    "Generate Labyrinth"
+                </button>
                 <button on:click=clear_grid>"Clear Grid"</button>
-            </div>
-            <div class="grid" style="display: inline-block; border: 1px solid #000;">
-                {render_grid}
+                <button on:click=visualize_pathfinding disabled=is_animating>"Visualize Pathfinding"</button>
             </div>
             <p>
                 "Start: " {move || start_node.get().map(|(r, c)| format!("({}, {})", r, c)).unwrap_or_else(|| "Not set".to_string())}
@@ -198,33 +237,145 @@ pub fn PathfindingVisualizer() -> impl IntoView {
             <p>
                 "End: " {move || end_node.get().map(|(r, c)| format!("({}, {})", r, c)).unwrap_or_else(|| "Not set".to_string())}
             </p>
+                <div class="speed-control" style="margin-top: 10px;">
+                    <label>"Animation Speed: "</label>
+                    <select on:change=move |ev| {
+                        set_animation_speed(match event_target_value(&ev).as_str() {
+                            "slow" => AnimationSpeed::Slow,
+                            "fast" => AnimationSpeed::Fast,
+                            _ => AnimationSpeed::Medium,
+                        });
+                    }>
+                        <option value="slow">"Slow"</option>
+                        <option value="medium" selected="true">"Medium"</option>
+                        <option value="fast">"Fast"</option>
+                    </select>
+                </div>
         </div>
     }
 }
 
+fn clear_path_and_visited(grid: &mut Vec<Vec<Node>>) {
+    for row in grid.iter_mut() {
+        for node in row.iter_mut() {
+            if node.node_type == NodeType::Path || node.node_type == NodeType::Visited {
+                node.node_type = NodeType::Empty;
+            }
+        }
+    }
+}
+
 async fn animate_path_finding(
-    grid: ReadSignal<Vec<Vec<Node>>>,
     set_grid: WriteSignal<Vec<Vec<Node>>>,
-    visited_nodes: Vec<(usize, usize)>,
-    path: Vec<(usize, usize)>,
+    visited_nodes: ReadSignal<Vec<(usize, usize)>>,
+    path: ReadSignal<Vec<(usize, usize)>>,
     set_is_animating: WriteSignal<bool>,
+    animation_speed: ReadSignal<AnimationSpeed>,
 ) {
-    let animation_speed = 10; // milliseconds
+    let speed = match animation_speed.get() {
+        AnimationSpeed::Slow => 50,
+        AnimationSpeed::Medium => 20,
+        AnimationSpeed::Fast => 5,
+    };
 
-    for &(row, col) in &visited_nodes {
-        set_grid.update(|g| g[row][col].node_type = NodeType::Visited);
-        TimeoutFuture::new(animation_speed).await;
+    let start = visited_nodes.get().first().cloned();
+    let end = path.get().last().cloned();
+
+    for &(row, col) in &visited_nodes.get() {
+        set_grid.update(|g| {
+            if Some((row, col)) != start && Some((row, col)) != end {
+                g[row][col].node_type = NodeType::Visited;
+            }
+        });
+        TimeoutFuture::new(speed).await;
     }
 
-    for &(row, col) in &path {
-        set_grid.update(|g| g[row][col].node_type = NodeType::Path);
-        TimeoutFuture::new(animation_speed).await;
+    for &(row, col) in &path.get() {
+        set_grid.update(|g| {
+            if Some((row, col)) != start && Some((row, col)) != end {
+                g[row][col].node_type = NodeType::Path;
+            }
+        });
+        TimeoutFuture::new(speed).await;
     }
 
+    set_grid.update(|g| {
+        for &(row, col) in &visited_nodes.get() {
+            if Some((row, col)) != start && Some((row, col)) != end && !path.get().contains(&(row, col)) {
+                g[row][col].node_type = NodeType::Empty;
+            }
+        }
+    });
     set_is_animating(false);
 }
 
-// Helper function to update node type
+fn generate_maze(grid: &mut Vec<Vec<Node>>, start: (usize, usize), end: (usize, usize)) {
+    let mut rng = rand::thread_rng();
+    let mut stack = vec![start];
+    let mut visited = HashSet::new();
+    visited.insert(start);
+
+    while let Some(current) = stack.pop() {
+        let (row, col) = current;
+        grid[row][col].node_type = NodeType::Empty;
+
+        let mut directions = vec![(-1, 0), (1, 0), (0, -1), (0, 1)];
+        directions.shuffle(&mut rng);
+
+        for (dr, dc) in directions {
+            let next_row = row as i32 + dr * 2;
+            let next_col = col as i32 + dc * 2;
+
+            if next_row >= 0 && next_row < ROWS as i32 && next_col >= 0 && next_col < COLS as i32 {
+                let next_row = next_row as usize;
+                let next_col = next_col as usize;
+
+                if !visited.contains(&(next_row, next_col)) {
+                    visited.insert((next_row, next_col));
+                    stack.push((next_row, next_col));
+                    
+                    let mid_row = (row as i32 + dr) as usize;
+                    let mid_col = (col as i32 + dc) as usize;
+                    grid[mid_row][mid_col].node_type = NodeType::Empty;
+                }
+            }
+        }
+    }
+
+    for _ in 0..((ROWS * COLS) / 50) {  
+        let row = rng.gen_range(1..ROWS-1);
+        let col = rng.gen_range(1..COLS-1);
+        grid[row][col].node_type = NodeType::Empty;
+    }
+
+    grid[start.0][start.1].node_type = NodeType::Empty;
+    grid[end.0][end.1].node_type = NodeType::Empty;
+
+    ensure_path(grid, start, end);
+}
+
+fn ensure_path(grid: &mut Vec<Vec<Node>>, start: (usize, usize), end: (usize, usize)) {
+    let mut current = start;
+    while current != end {
+        let (row, col) = current;
+        let (end_row, end_col) = end;
+
+        if row < end_row {
+            current = (row + 1, col);
+        } else if row > end_row {
+            current = (row - 1, col);
+        } else if col < end_col {
+            current = (row, col + 1);
+        } else if col > end_col {
+            current = (row, col - 1);
+        }
+
+        if current != end { 
+            grid[current.0][current.1].node_type = NodeType::Empty;
+        }
+    }
+}
+
 fn update_node(
     row: usize,
     col: usize,
@@ -243,14 +394,32 @@ fn update_node(
             if let Some(old_start) = start_node.get() {
                 set_grid.update(|g| g[old_start.0][old_start.1].node_type = NodeType::Empty);
             }
-            set_grid.update(|g| g[row][col].node_type = NodeType::Start);
+            set_grid.update(|g| {
+                for row in g.iter_mut() {
+                    for node in row.iter_mut() {
+                        if node.node_type == NodeType::Path || node.node_type == NodeType::Visited {
+                            node.node_type = NodeType::Empty;
+                        }
+                    }
+                }
+                g[row][col].node_type = NodeType::Start;
+            });
             set_start_node(Some((row, col)));
         }
         NodeType::End => {
             if let Some(old_end) = end_node.get() {
                 set_grid.update(|g| g[old_end.0][old_end.1].node_type = NodeType::Empty);
             }
-            set_grid.update(|g| g[row][col].node_type = NodeType::End);
+            set_grid.update(|g| {
+                for row in g.iter_mut() {
+                    for node in row.iter_mut() {
+                        if node.node_type == NodeType::Path || node.node_type == NodeType::Visited {
+                            node.node_type = NodeType::Empty;
+                        }
+                    }
+                }
+                g[row][col].node_type = NodeType::End;
+            });
             set_end_node(Some((row, col)));
         }
         NodeType::Wall => {

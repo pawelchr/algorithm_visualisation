@@ -5,7 +5,6 @@ mod sorting_menu;
 mod path_finding_menu;
 mod path_finding;
 mod app;
-mod node;
 
 use leptos::*;
 use app::App;

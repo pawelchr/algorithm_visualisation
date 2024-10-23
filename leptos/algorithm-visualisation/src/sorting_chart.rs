@@ -1,7 +1,8 @@
 use crate::sorting::BarColor;
 use leptos::*;
 use leptos_charts::{BarChart, Color, BarChartOptions, Palette};
-
+use std::rc::Rc;
+use std::cell::RefCell;
 
 #[component]
 pub fn SortingChart(
@@ -13,10 +14,8 @@ pub fn SortingChart(
     let green_color = Color::RGB(0, 255, 0);
     let orange_color = Color::RGB(227, 150, 62);
 
-    // Memoize the palettes so it doesn't recompute unnecessarily
     let palettes_memo = create_memo(move |_| palettes());
 
-    // Define the palette for the current step
     let palette = create_memo(move |_| {
         let current_index = current_step();
         let step_palette = &palettes_memo()[current_index];
@@ -32,11 +31,36 @@ pub fn SortingChart(
 
     let options = BarChartOptions { max_ticks: 4 };
 
-    // Define the step values for the current step
     let step = create_memo(move |_| {
         let current_index = current_step();
         steps()[current_index].clone()
     });
+
+    // New state for animation
+    let is_animating = create_rw_signal(false);
+    let animation_speed = create_rw_signal(500); // Default speed: 500ms
+
+    // Create a recursive closure for animation
+    let animate_closure: Rc<RefCell<Option<Box<dyn Fn()>>>> = Rc::new(RefCell::new(None));
+    let animate_closure_clone = animate_closure.clone();
+
+    *animate_closure.borrow_mut() = Some(Box::new(move || {
+        let max_step = steps().len().saturating_sub(1);
+        if current_step.get() < max_step && is_animating.get() {
+            current_step.update(|n| *n += 1);
+            let value = animate_closure_clone.clone();
+            set_timeout(
+                move || {
+                    if let Some(ref animate) = *value.borrow() {
+                        animate();
+                    }
+                },
+                std::time::Duration::from_millis(animation_speed.get() as u64),
+            );
+        } else {
+            is_animating.set(false);
+        }
+    }));
 
     view! {
         <div>
@@ -45,60 +69,66 @@ pub fn SortingChart(
                     values=Signal::derive(move || step()).into()
                     pallete=Signal::derive(move || Palette(palette())).into()
                     options=options
-                    attr:style="margin-top:5px "
+                    attr:style="margin-top:5px"
                     attr:preserveAspectRatio="none"
                     attr:width="500"
                     attr:height="500"
                 />
             </div>
-            <div class="flex items-center justify-center">
-                // <button on:click=move |_| {
-                // set_current_step.update(|n| *n -= 1);
-                // }>"Previous step"</button>
-                // <button
-                // prop:disabled=move || { if disable() { true } else { false } }
-                // on:click=move |_| {
-                // if current_step() < steps().len() - 1 {
-                // set_current_step.update(|n| *n += 1);
-                // } else {
-                // set_disable(true)
-                // }
-                // }
-                // >
-                // "Next step"
-                // </button>
+            <div class="flex items-center justify-center space-x-2">
                 <button
                     on:click=move |_| {
-                        current_step
-                            .update(|n| {
-                                if *n > 0 {
-                                    *n -= 1;
-                                }
-                            });
+                        current_step.update(|n| {
+                            if *n > 0 {
+                                *n -= 1;
+                            }
+                        });
                     }
-                    disabled=move || current_step.get() == 0
+                    disabled=move || current_step.get() == 0 || is_animating.get()
                 >
                     "Previous step"
                 </button>
                 <button
                     on:click=move |_| {
-                        current_step
-                            .update(|n| {
-                                if *n < steps().len().saturating_sub(1) {
-                                    *n += 1;
-                                }
-                            });
+                        current_step.update(|n| {
+                            if *n < steps().len().saturating_sub(1) {
+                                *n += 1;
+                            }
+                        });
                     }
                     disabled=move || {
                         let max_step = steps().len().saturating_sub(1);
-                        current_step.get() >= max_step
+                        current_step.get() >= max_step || is_animating.get()
                     }
                 >
                     "Next step"
                 </button>
-                // <p>"step: "{move || step().to_string()}</p>
-                <p>"current step: "{move || current_step().to_string()}</p>
-                <p>"steps.len: "{move || steps().len().to_string()}</p>
+                <button
+                    on:click=move |_| {
+                        if !is_animating.get() {
+                            is_animating.set(true);
+                            if let Some(ref animate) = *animate_closure.borrow() {
+                                animate();
+                            }
+                        } else {
+                            is_animating.set(false);
+                        }
+                    }
+                >
+                    {move || if is_animating.get() { "Stop" } else { "Animate" }}
+                </button>
+                <select
+                    on:change=move |ev| {
+                        animation_speed.set(event_target_value(&ev).parse().unwrap_or(500));
+                    }
+                    disabled=move || is_animating.get()
+                >
+                    <option value="1000">"Slow"</option>
+                    <option value="500" selected>"Normal"</option>
+                    <option value="200">"Fast"</option>
+                </select>
+                <p>"Current step: "{move || current_step().to_string()}</p>
+                <p>"Total steps: "{move || steps().len().to_string()}</p>
             </div>
         </div>
     }

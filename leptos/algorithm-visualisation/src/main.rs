@@ -5,6 +5,12 @@ mod sorting_menu;
 mod path_finding_menu;
 mod path_finding;
 mod app;
+mod bubblesortviz;
+mod quicksortviz;
+mod mergesortviz;
+mod insertsortviz;
+mod selectionsortviz;
+mod bogosortviz;
 
 use leptos::*;
 use app::App;

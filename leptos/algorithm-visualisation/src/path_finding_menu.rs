@@ -4,10 +4,18 @@ use std::cmp::Ordering;
 use gloo_timers::future::TimeoutFuture;
 use rand::prelude::SliceRandom;
 use rand::Rng;
+use crate::navbar::NavBar;
 
 // Constants
 const ROWS: usize = 20;
 const COLS: usize = 50;
+
+#[derive(Clone, Copy, PartialEq)]
+enum DrawingMode {
+    None,
+    Drawing,
+    Erasing,
+}
 
 // Node types
 #[derive(Clone, PartialEq)]
@@ -35,6 +43,7 @@ enum Algorithm {
     AStar,
     BFS,
     DFS,
+    Swarm,
 }
 
 #[derive(Clone, PartialEq)]
@@ -75,6 +84,7 @@ pub fn PathfindingVisualizer() -> impl IntoView {
     let (visited_nodes, set_visited_nodes) = create_signal(Vec::new());
     let (path, set_path) = create_signal(Vec::new());
     let (animation_speed, set_animation_speed) = create_signal(AnimationSpeed::Medium);
+    let (wall_drawing_mode, set_wall_drawing_mode) = create_signal(DrawingMode::None);
 
     create_effect(move |_| {
         let mut new_grid = vec![vec![Node { row: 0, col: 0, node_type: NodeType::Empty }; COLS]; ROWS];
@@ -90,19 +100,37 @@ pub fn PathfindingVisualizer() -> impl IntoView {
         set_grid(new_grid);
     });
 
-    let handle_mouse_down = move |row: usize, col: usize| {
-        set_is_mouse_pressed(true);
-        update_node(row, col, &grid, &set_grid, &start_node, &end_node, &set_start_node, &set_end_node, &current_mode);
-    };
-
-    let handle_mouse_enter = move |row: usize, col: usize| {
-        if is_mouse_pressed.get() {
-            update_node(row, col, &grid, &set_grid, &start_node, &end_node, &set_start_node, &set_end_node, &current_mode);
+    let handle_mouse_down = move |row: usize, col: usize, e: web_sys::MouseEvent| {
+        if e.button() == 0 {
+            e.prevent_default();
+            set_is_mouse_pressed(true);
+            
+            // Set drawing mode only if we're in wall mode
+            if current_mode.get() == NodeType::Wall {
+                let mode = if grid.get()[row][col].node_type == NodeType::Wall {
+                    DrawingMode::Erasing
+                } else {
+                    DrawingMode::Drawing
+                };
+                set_wall_drawing_mode(mode);
+                update_node(row, col, &grid, &set_grid, &start_node, &end_node, &set_start_node, &set_end_node, &current_mode, mode);
+            } else {
+                update_node(row, col, &grid, &set_grid, &start_node, &end_node, &set_start_node, &set_end_node, &current_mode, DrawingMode::None);
+            }
         }
     };
-
-    let handle_mouse_up = move |_| {
+    
+    let handle_mouse_enter = move |row: usize, col: usize, e: web_sys::MouseEvent| {
+        e.prevent_default();
+        if is_mouse_pressed.get() && current_mode.get() == NodeType::Wall {
+            update_node(row, col, &grid, &set_grid, &start_node, &end_node, &set_start_node, &set_end_node, &current_mode, wall_drawing_mode.get());
+        }
+    };
+    
+    let handle_mouse_up = move |e: web_sys::MouseEvent| {
+        e.prevent_default();
         set_is_mouse_pressed(false);
+        set_wall_drawing_mode(DrawingMode::None);
     };
 
     let render_grid = move || {
@@ -129,10 +157,12 @@ pub fn PathfindingVisualizer() -> impl IntoView {
                         view! {
                             <div
                                 class=format!("node {}", node_class)
-                                style=format!("width: 20px; height: 20px; border: 1px solid #ccc; background-color: {};", background_color)
-                                on:mousedown=move |_| handle_mouse_down(i, j)
-                                on:mouseenter=move |_| handle_mouse_enter(i, j)
+                                style=format!("width: 20px; height: 20px; border: 1px solid #ccc; background-color: {}; user-select: none;", background_color)
+                                on:mousedown=move |e| handle_mouse_down(i, j, e)
+                                on:mouseenter=move |e| handle_mouse_enter(i, j, e)
                                 on:mouseup=handle_mouse_up
+                                on:mouseleave=handle_mouse_up
+                                on:dragstart=|e| e.prevent_default()
                             ></div>
                         }
                     }).collect::<Vec<_>>()}
@@ -156,6 +186,7 @@ pub fn PathfindingVisualizer() -> impl IntoView {
                     Algorithm::AStar => astar(&current_grid, start, end),
                     Algorithm::BFS => bfs(&current_grid, start, end),
                     Algorithm::DFS => dfs(&current_grid, start, end),
+                    Algorithm::Swarm => swarm(&current_grid, start, end),
                 };
     
                 set_visited_nodes(visited);
@@ -195,8 +226,9 @@ pub fn PathfindingVisualizer() -> impl IntoView {
     };
 
     view! {
-        <div class="pathfinding-visualizer" style="display: flex; flex-direction: column; align-items: center;">
-            <h1>"Pathfinding Visualizer"</h1>
+        <NavBar/>
+        <div class="pathfinding-visualizer mt-2" style="display: flex; flex-direction: column; align-items: center;">
+            //<h1>"Pathfinding Visualizer"</h1>
             <div class="controls" style="margin-bottom: 20px;">
                 <select on:change=move |ev| {
                     set_selected_algorithm(match event_target_value(&ev).as_str() {
@@ -204,6 +236,7 @@ pub fn PathfindingVisualizer() -> impl IntoView {
                         "astar" => Algorithm::AStar,
                         "bfs" => Algorithm::BFS,
                         "dfs" => Algorithm::DFS,
+                        "swarm" => Algorithm::Swarm,
                         _ => Algorithm::Dijkstra,
                     });
                 }>
@@ -211,25 +244,39 @@ pub fn PathfindingVisualizer() -> impl IntoView {
                     <option value="astar">"A* Search"</option>
                     <option value="bfs">"Breadth-First Search"</option>
                     <option value="dfs">"Depth-First Search"</option>
+                    <option value="swarm">"Swarm Algorithm"</option>
                 </select>
-                <button on:click=visualize_pathfinding disabled=is_animating>"Visualize Pathfinding"</button>
+                <button
+                class="ml-1 px-4 py-2 bg-blue-500 text-white rounded"
+                on:click=visualize_pathfinding disabled=is_animating>"Visualize Pathfinding"</button>
             </div>
 
             <div class="grid" style="display: inline-block; border: 1px solid #000;">
                 {render_grid}
             </div>
             <div class="node-selection" style="margin-bottom: 10px;">
-                <button on:click=move |_| set_current_mode(NodeType::Start)>"Select Start"</button>
-                <button on:click=move |_| set_current_mode(NodeType::End)>"Select End"</button>
-                <button on:click=move |_| set_current_mode(NodeType::Wall)>"Draw Walls"</button>
-                <button 
+                <button
+                class="m-1 px-4 py-2 bg-blue-500 text-white rounded"
+                on:click=move |_| set_current_mode(NodeType::Start)>"Select Start"</button>
+                <button
+                class="m-1 px-4 py-2 bg-blue-500 text-white rounded"
+                on:click=move |_| set_current_mode(NodeType::End)>"Select End"</button>
+                <button
+                class="m-1 px-4 py-2 bg-blue-500 text-white rounded"
+                on:click=move |_| set_current_mode(NodeType::Wall)>"Draw Walls"</button>
+                <button
+                    class="m-1 px-4 py-2 bg-blue-500 text-white rounded"
                     on:click=generate_labyrinth
                     disabled={move || start_node.get().is_none() || end_node.get().is_none()}
                 >
                     "Generate Labyrinth"
                 </button>
-                <button on:click=clear_grid>"Clear Grid"</button>
-                <button on:click=visualize_pathfinding disabled=is_animating>"Visualize Pathfinding"</button>
+                <button
+                class="m-1 px-4 py-2 bg-blue-500 text-white rounded"
+                on:click=clear_grid>"Clear Grid"</button>
+                // <button
+                // class="px-4 py-2 bg-blue-500 text-white rounded"
+                // on:click=visualize_pathfinding disabled=is_animating>"Visualize Pathfinding"</button>
             </div>
             <p>
                 "Start: " {move || start_node.get().map(|(r, c)| format!("({}, {})", r, c)).unwrap_or_else(|| "Not set".to_string())}
@@ -278,22 +325,33 @@ async fn animate_path_finding(
         AnimationSpeed::Fast => 5,
     };
 
+    let batch_size = match animation_speed.get() {
+        AnimationSpeed::Slow => 1,
+        AnimationSpeed::Medium => 3,
+        AnimationSpeed::Fast => 5,
+    };
+
     let start = visited_nodes.get().first().cloned();
     let end = path.get().last().cloned();
+    let visited = visited_nodes.get();
 
-    for &(row, col) in &visited_nodes.get() {
+    for chunk in visited.chunks(batch_size) {
         set_grid.update(|g| {
-            if Some((row, col)) != start && Some((row, col)) != end {
-                g[row][col].node_type = NodeType::Visited;
+            for &(row, col) in chunk {
+                if Some((row, col)) != start && Some((row, col)) != end {
+                    g[row][col].node_type = NodeType::Visited;
+                }
             }
         });
         TimeoutFuture::new(speed).await;
     }
 
-    for &(row, col) in &path.get() {
+    for chunk in path.get().chunks(batch_size) {
         set_grid.update(|g| {
-            if Some((row, col)) != start && Some((row, col)) != end {
-                g[row][col].node_type = NodeType::Path;
+            for &(row, col) in chunk {
+                if Some((row, col)) != start && Some((row, col)) != end {
+                    g[row][col].node_type = NodeType::Path;
+                }
             }
         });
         TimeoutFuture::new(speed).await;
@@ -386,56 +444,53 @@ fn update_node(
     set_start_node: &WriteSignal<Option<(usize, usize)>>,
     set_end_node: &WriteSignal<Option<(usize, usize)>>,
     current_mode: &ReadSignal<NodeType>,
+    drawing_mode: DrawingMode,
 ) {
-    let current_node_type = grid.get()[row][col].node_type.clone();
+    let current_pos = (row, col);
+    let grid_val = grid.get();
+    let current_node_type = &grid_val[row][col].node_type;
+
+    // Don't modify start or end nodes
+    if start_node.get() == Some(current_pos) || end_node.get() == Some(current_pos) {
+        return;
+    }
 
     match current_mode.get() {
-        NodeType::Start => {
-            if let Some(old_start) = start_node.get() {
-                set_grid.update(|g| g[old_start.0][old_start.1].node_type = NodeType::Empty);
-            }
-            set_grid.update(|g| {
-                for row in g.iter_mut() {
-                    for node in row.iter_mut() {
-                        if node.node_type == NodeType::Path || node.node_type == NodeType::Visited {
-                            node.node_type = NodeType::Empty;
-                        }
-                    }
-                }
-                g[row][col].node_type = NodeType::Start;
-            });
-            set_start_node(Some((row, col)));
-        }
-        NodeType::End => {
-            if let Some(old_end) = end_node.get() {
-                set_grid.update(|g| g[old_end.0][old_end.1].node_type = NodeType::Empty);
-            }
-            set_grid.update(|g| {
-                for row in g.iter_mut() {
-                    for node in row.iter_mut() {
-                        if node.node_type == NodeType::Path || node.node_type == NodeType::Visited {
-                            node.node_type = NodeType::Empty;
-                        }
-                    }
-                }
-                g[row][col].node_type = NodeType::End;
-            });
-            set_end_node(Some((row, col)));
-        }
         NodeType::Wall => {
-            if current_node_type != NodeType::Start && current_node_type != NodeType::End {
-                set_grid.update(|g| {
-                    g[row][col].node_type = if current_node_type == NodeType::Wall {
-                        NodeType::Empty
-                    } else {
-                        NodeType::Wall
-                    };
-                });
+            if current_node_type != &NodeType::Start && current_node_type != &NodeType::End {
+                match drawing_mode {
+                    DrawingMode::Drawing => {
+                        set_grid.update(|g| g[row][col].node_type = NodeType::Wall);
+                    },
+                    DrawingMode::Erasing => {
+                        set_grid.update(|g| g[row][col].node_type = NodeType::Empty);
+                    },
+                    DrawingMode::None => {}
+                }
             }
-        }
+        },
+        NodeType::Start => {
+            if current_node_type != &NodeType::End {
+                if let Some(old_start) = start_node.get() {
+                    set_grid.update(|g| g[old_start.0][old_start.1].node_type = NodeType::Empty);
+                }
+                set_grid.update(|g| g[row][col].node_type = NodeType::Start);
+                set_start_node(Some(current_pos));
+            }
+        },
+        NodeType::End => {
+            if current_node_type != &NodeType::Start {
+                if let Some(old_end) = end_node.get() {
+                    set_grid.update(|g| g[old_end.0][old_end.1].node_type = NodeType::Empty);
+                }
+                set_grid.update(|g| g[row][col].node_type = NodeType::End);
+                set_end_node(Some(current_pos));
+            }
+        },
         _ => {}
     }
 }
+
 
 fn dijkstra(grid: &Vec<Vec<Node>>, start: (usize, usize), end: (usize, usize)) -> (Vec<(usize, usize)>, Vec<(usize, usize)>) {
     let mut visited_nodes = Vec::new();
@@ -635,4 +690,61 @@ fn initialize_grid(set_grid: &WriteSignal<Vec<Vec<Node>>>) {
         }
     }
     set_grid(new_grid);
+}
+
+fn swarm(grid: &Vec<Vec<Node>>, start: (usize, usize), end: (usize, usize)) -> (Vec<(usize, usize)>, Vec<(usize, usize)>) {
+    let mut visited_nodes = Vec::new();
+    let mut distances = vec![vec![usize::MAX; COLS]; ROWS];
+    let mut prev = vec![vec![None; COLS]; ROWS];
+    let mut priority_queue = BinaryHeap::new();
+    
+    distances[start.0][start.1] = 0;
+    priority_queue.push(State { cost: 0, position: start });
+
+    while let Some(State { position, .. }) = priority_queue.pop() {
+        let (row, col) = position;
+        
+        if position == end {
+            break;
+        }
+
+        // Add to visited nodes only if we haven't visited it before
+        if !visited_nodes.contains(&position) {
+            visited_nodes.push(position);
+        }
+
+        // Get neighbors with multiple passes
+        for pass in 0..2 {  // Two passes for swarm-like behavior
+            for (dr, dc) in &[(0, 1), (1, 0), (0, -1), (-1, 0)] {
+                let new_row = row as i32 + dr;
+                let new_col = col as i32 + dc;
+
+                if new_row >= 0 && new_row < ROWS as i32 && new_col >= 0 && new_col < COLS as i32 {
+                    let new_row = new_row as usize;
+                    let new_col = new_col as usize;
+
+                    if grid[new_row][new_col].node_type != NodeType::Wall {
+                        let distance_to_end = manhattan_distance((new_row, new_col), end);
+                        let new_cost = distances[row][col] + 1 + (distance_to_end / 2);
+
+                        if new_cost < distances[new_row][new_col] {
+                            distances[new_row][new_col] = new_cost;
+                            prev[new_row][new_col] = Some((row, col));
+                            priority_queue.push(State {
+                                cost: new_cost,
+                                position: (new_row, new_col),
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    let path = reconstruct_path(&prev, end);
+    (visited_nodes, path)
+}
+
+fn manhattan_distance(a: (usize, usize), b: (usize, usize)) -> usize {
+    ((a.0 as i32 - b.0 as i32).abs() + (a.1 as i32 - b.1 as i32).abs()) as usize
 }

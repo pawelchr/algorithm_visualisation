@@ -11,6 +11,9 @@ mod mergesortviz;
 mod insertsortviz;
 mod selectionsortviz;
 mod bogosortviz;
+mod sorting_controls;
+mod sorting_info;
+mod landing_page;
 
 use leptos::*;
 use app::App;

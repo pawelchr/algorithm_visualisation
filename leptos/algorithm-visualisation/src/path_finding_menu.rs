@@ -714,7 +714,7 @@ fn swarm(grid: &Vec<Vec<Node>>, start: (usize, usize), end: (usize, usize)) -> (
         }
 
         // Get neighbors with multiple passes
-        for pass in 0..2 {  // Two passes for swarm-like behavior
+        for _ in 0..2 {  // Two passes for swarm-like behavior
             for (dr, dc) in &[(0, 1), (1, 0), (0, -1), (-1, 0)] {
                 let new_row = row as i32 + dr;
                 let new_col = col as i32 + dc;

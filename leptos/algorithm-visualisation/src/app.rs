@@ -1,5 +1,6 @@
 use leptos::*;
 use leptos_router::{Route, Router, Routes};
+use crate::landing_page::LandingPage;
 use crate::path_finding_menu::PathfindingVisualizer;
 use crate::bubblesortviz::BubbleSortVisualizer;
 use crate::quicksortviz::QuickSortVisualizer;
@@ -13,6 +14,7 @@ pub fn App() -> impl IntoView {
     view! {
         <Router>
             <Routes>
+                <Route path="/" view=LandingPage/>
                 <Route path="/bubble-sort" view=BubbleSortVisualizer/>
                 <Route path="/quick-sort" view=QuickSortVisualizer/>
                 <Route path="/merge-sort" view=MergeSortVisualizer/>

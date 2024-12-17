@@ -15,7 +15,7 @@ pub fn NavBar() -> impl IntoView {
                     // Logo/Brand section
                     <div class="flex items-center">
                         <a href="/" class="text-white text-xl font-bold">
-                            "Sorting Visualizer"
+                            "Algorithm Visualizer"
                         </a>
                     </div>
 
@@ -96,7 +96,7 @@ pub fn NavBar() -> impl IntoView {
                             href="/path-finding"
                             class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
                         >
-                            "PathFinding"
+                            "Pathfinding"
                         </a>
                     </div>
                 </div>
